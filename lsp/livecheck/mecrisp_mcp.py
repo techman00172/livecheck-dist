@@ -19,7 +19,7 @@ the chip, so it cannot wedge the ring buffer.
 DATABASES (the same source of truth the LSP uses):
   FORTH_DB_DIR   ~/fossil/mecrisp-stellaris-lsp/  ->  mecrisp_stellaris.db
         tables: FORTH (official words) + CUSTOM_FORTH (Terry's gate-approved)
-  SVD relational ~/fossil/swdai/database_rel.db
+  SVD relational ~/fossil/swdai/databases/STM32F051-svd.db
         tables: register(peripheral_name, name, address, resetValue, access,
                          description)
                 field(peripheral_name, register_name, name, bitWidth,
@@ -49,7 +49,7 @@ from forth_lint import lint_line as _lint_line_forth
 import site_paths as _site_paths
 
 FORTH_DB = _site_paths.lsp_db("mecrisp_stellaris.db")
-SVD_DB = _site_paths.database("database_rel.db")
+SVD_DB = _site_paths.database("STM32F051-svd.db")
 
 # Which server am I?  register_fields / register_lookup / chip_info exist on
 # BOTH mecrisp-mcp (8792) and regmon-mcp (8793).  Every response from those

@@ -48,11 +48,20 @@ def pattern(name: str) -> str:
 
 
 def database(name: str) -> str:
-    """SVD / RM databases - <dist>/databases/<name>."""
-    return _first(
-        os.path.join(_DIST, "databases", name),
-        os.path.expanduser(f"~/fossil/swdai/databases/{name}"),
-    )
+    """SVD / RM databases - <dist>/databases/<name>.
+
+    Dev fallback also tries the legacy swdai name (pre-2026-08-29, before
+    the -svd/-rm suffix scheme) so the same code works against an old
+    checkout."""
+    candidates = [os.path.join(_DIST, "databases", name)]
+    if name.endswith("-svd.db"):
+        legacy = name[:-len("-svd.db")] + ".db"
+        candidates.append(os.path.expanduser(f"~/fossil/swdai/databases/{legacy}"))
+    elif name.endswith("-rm.db"):
+        legacy = "stm32f0xx-rm.db"
+        candidates.append(os.path.expanduser(f"~/fossil/swdai/databases/{legacy}"))
+    candidates.append(os.path.expanduser(f"~/fossil/swdai/databases/{name}"))
+    return _first(*candidates)
 
 
 def script(name: str) -> str:

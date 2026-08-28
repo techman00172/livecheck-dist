@@ -50,10 +50,10 @@ for f in README.md setup.sh \
          lsp/livecheck/project_summary.py \
          lsp/livecheck/mecrisp_mcp.py \
          lsp/livecheck/mecrisp_stellaris.db \
-         databases/ARM-Core.db databases/STM32F051.db \
-         databases/STM32F103.db databases/STM32F407.db \
-         databases/STM32L0xx.db databases/STM32G030.db \
-         databases/database_rel.db \
+         databases/ARM-Core.db databases/STM32F051-svd.db \
+         databases/STM32F103-svd.db databases/STM32F407-svd.db \
+         databases/STM32L0xx-svd.db databases/STM32G030-svd.db \
+         databases/STM32F051-rm.db \
          toolchain/gema toolchain/swd2 toolchain/swdd \
          toolchain/patterns/bitfields.pat \
          toolchain/patterns/registers.pat \
@@ -77,8 +77,8 @@ import site_paths as sp
 checks = [
     sp.toolchain('gema'),
     sp.pattern('bitfields.pat'),
-    sp.database('STM32F051.db'),
-    sp.database('database_rel.db'),
+    sp.database('STM32F051-svd.db'),
+    sp.database('STM32F051-rm.db'),
     sp.script('summary-tk.sh'),
     sp.kernel('kernel-2.6.5-swd-bare.bin'),
     sp.lsp_db(),
@@ -109,7 +109,7 @@ fi
 
 # --- 5. Databases are readable with content ---
 echo "-- 5. Database contents --"
-for db in ARM-Core STM32F051 STM32F103 STM32F407 STM32L0xx STM32G030; do
+for db in ARM-Core STM32F051-svd STM32F103-svd STM32F407-svd STM32L0xx-svd STM32G030-svd; do
     n=$(sqlite3 "$REPO/databases/$db.db" "SELECT count(*) FROM peripheral;" 2>/dev/null)
     if [ -n "$n" ] && [ "$n" -gt 0 ]; then
         ok "$db.db: $n peripherals"

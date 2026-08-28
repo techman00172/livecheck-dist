@@ -12,7 +12,7 @@ What the pre-tested release contains, all in one place:
 
 - the **F051 debug kernel** (the one thing the chip must run)
 - the **two language servers** (mecrisp + cmsis-svd) that power LiveCheck
-- the **SVD databases** they consult (F0/F1/F4/L0/G0 + ARM-core)
+- the **SVD databases** they consult (`*-svd.db`: F0/F1/F4/L0/G0 + `ARM-Core.db`)
 - the **toolchain** (gema, swd2, swdd, the uploader)
 - the **demo** — a vimtutor that teaches you LiveCheck with six real bugs
 - the **helper scripts** (reset, summary, assert) and the summary viewer
@@ -53,6 +53,22 @@ of the box; for another chip you add its three converted pieces.  (The
 distribution also carries ready-converted SVD databases for the F1, F4, L0
 and G0 families — those need their matching kernel and manual conversions
 before they are usable as a full target.)
+
+### Database naming
+
+The databases follow a `-svd` / `-rm` suffix scheme so you always know what
+you are looking at:
+
+- `*-svd.db` — the **SVD** (register map) databases, built from the vendor's
+  CMSIS-SVD file: every peripheral, register and bitfield.  `ARM-Core.db` is
+  the same kind of data for the ARM Cortex-M core registers (SysTick, SCB)
+  that ST's SVD omits.
+- `*-rm.db` — the **Reference Manual** prose: the human-readable *meaning* of
+  each register and bitfield, converted from the ST technical reference
+  manual (shown in completions and the summary).
+
+So `STM32F051-svd.db` is the F051's register map and `STM32F051-rm.db` is
+the F051's manual meanings — a pair, one name, both halves.
 
 ## Install
 

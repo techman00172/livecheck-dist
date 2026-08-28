@@ -35,7 +35,7 @@ import site_paths
 
 FORTH_SOCK = "/tmp/swdd-forth.sock"
 CMD_SOCK = "/tmp/swdd-cmd.sock"
-SVD_DB = site_paths.database("database_rel.db")
+SVD_DB = site_paths.database("STM32F051-svd.db")
 
 # Key registers for the CONFIG section.  (peripheral, register) -> why it matters
 CONFIG_REGS = [
@@ -140,7 +140,7 @@ def _rm_prose(periph, reg, fname):
     """RM reference-manual prose for a bitfield, with sibling-timer and
     generic fallbacks (same strategy as the LSP's live decode).  Returns the
     prose text or None."""
-    rm_db = site_paths.database("stm32f0xx-rm.db")
+    rm_db = site_paths.database("STM32F051-rm.db")
     if not os.path.isfile(rm_db):
         return None
     try:

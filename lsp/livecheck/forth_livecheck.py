@@ -705,17 +705,16 @@ def _read_u32(addr):
 # comment names the register by its compound SVD name (GPIOC_ODR, Flash_CR,
 # RCC_CR) and the bit by its field name (ODR1, LOCK, HSIRDY); the magic numbers
 # are fetched, not typed.
-SVD_DB = site_paths.database("database_rel.db")
+SVD_DB = site_paths.database("STM32F051-svd.db")
 _SVD_DB_ALT = [
-    site_paths.database("STM32F051.db"),
-    site_paths.database("STM32F103.db"),
-    site_paths.database("STM32F407.db"),
-    site_paths.database("STM32L0xx.db"),
+    site_paths.database("STM32F103-svd.db"),
+    site_paths.database("STM32F407-svd.db"),
+    site_paths.database("STM32L0xx-svd.db"),
 ]
 
 
 def _svd_db_path():
-    """First existing SVD DB (the live database_rel.db, else a family DB)."""
+    """First existing SVD DB (the live F051-svd DB, else a family DB)."""
     for p in [SVD_DB, *_SVD_DB_ALT]:
         if os.path.isfile(p):
             return p

@@ -102,11 +102,11 @@ class SVDCompletionProvider:
         SVD database (distribution databases/ dir, else swdai dev checkout).
         Returns '' if nothing matches."""
         candidates = [
-            "STM32F051.db",
-            "STM32F103.db",
-            "STM32F407.db",
-            "STM32L0xx.db",
-            "STM32G030.db",
+            "STM32F051-svd.db",
+            "STM32F103-svd.db",
+            "STM32F407-svd.db",
+            "STM32L0xx-svd.db",
+            "STM32G030-svd.db",
         ]
         mcu_up = (mcu or "").upper()
         prefer = None
@@ -1155,7 +1155,7 @@ def _decode_bitfield_value(periph, reg, fname, fval):
 
     # 2. the value-table prose from the RM DB (the same source Regmon decodes).
     import os as _os
-    rm_db = site_paths.database("stm32f0xx-rm.db")
+    rm_db = site_paths.database("STM32F051-rm.db")
     if not _os.path.isfile(rm_db):
         return None, None
     prose = None
