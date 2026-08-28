@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# demo - scaffold a fresh LiveCheck demo project to work through.
+#
+# Usage:  demo [workdir]
+#   workdir defaults to ./livecheck-demo-work
+#
+# The demo is a vimtutor for LiveCheck: a small, deliberately-broken Forth
+# file that teaches the common Mecrisp traps by making you fix them.  You
+# open it in Helix, press F4, see the orange check marks, fix each line,
+# and watch them turn blue as the live chip accepts them.
+#
+# Requirement: the STM32F051 must be running the debug kernel (the SWD
+# ring-buffer kernel with swdd), and swdd.service must be active.  The demo
+# copies the pristine project so the original stays untouched and reusable.
+
+set -euo pipefail
+
+DEMO_SRC=/home/tp/fossil/livecheck-demo
+WORK="${1:-./livecheck-demo-work}"
+
+if [ ! -d "$DEMO_SRC" ]; then
+    echo "ERROR: demo source not found at $DEMO_SRC" >&2
+    exit 1
+fi
+
+if [ -e "$WORK" ]; then
+    echo "ERROR: $WORK already exists - pick a new name or remove it first." >&2
+    exit 1
+fi
+
+mkdir -p "$WORK"
+cp -r "$DEMO_SRC/src" "$DEMO_SRC/toolchain" "$WORK/"
+chmod +x "$WORK/toolchain/swd2" "$WORK/toolchain/swdd-upload.py" "$WORK/toolchain/gema"
+
+echo "LiveCheck demo project created at: $WORK"
+echo
+echo "NEXT:"
+echo "  1. cd $WORK/src"
+echo "  2. hx demo.fs          (open the demo in Helix)"
+echo "  3. press F4            (reset + build + upload; see the orange marks)"
+echo "  4. work top to bottom: read each STEP, fix the line, F4, watch orange"
+echo "                          turn blue.  F6 runs the asserts."
+echo
+echo "The demo needs the STM32F051 debug kernel flashed and swdd running."
+echo "Re-run any time:  demo <another-dir>"

@@ -1,0 +1,2 @@
+pygls>=0.6.0
+lsprotocol>=1.4.0
