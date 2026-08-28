@@ -29,6 +29,31 @@ To install it, follow these steps.
 - an **ST-Link** SWD probe (a few dollars; the Discovery board has one built in)
 - a **STM32F051** board
 
+## Which chips does this work with?
+
+This release ships everything needed for the **STM32F051** (the debug
+kernel, the SVD database, and the reference-manual data all come converted
+and ready).  The Discovery board is the reference target, and that's what
+the demo runs on.
+
+But **LiveCheck itself is not F051-only.**  It works with any STM32
+microcontroller for which you have:
+
+1. a **debug kernel** built for that chip (the same SWD ring-buffer kernel,
+   compiled for your part);
+2. the **SVD file** (the vendor's register description) converted in the
+   correct manner into the database format this toolchain reads;
+3. the **technical reference manual** converted the same way, so the
+   register/bitfield meanings come up in completions and the summary.
+
+The language servers, the toolchain, the demo method and the whole
+live-silicon workflow are chip-agnostic — only the data (kernel + SVD +
+manual) is chip-specific.  The F051 set is included so everything works out
+of the box; for another chip you add its three converted pieces.  (The
+distribution also carries ready-converted SVD databases for the F1, F4, L0
+and G0 families — those need their matching kernel and manual conversions
+before they are usable as a full target.)
+
 ## Install
 
 ```sh

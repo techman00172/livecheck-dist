@@ -36,6 +36,12 @@ test/         an isolated test harness (builds in a container)
 - an **ST-Link** SWD probe (a few dollars, or the Discovery board has one built in)
 - a **STM32F051** board (Discovery or similar)
 
+The F051 is the shipped reference target (kernel + SVD + converted manuals
+all included).  LiveCheck itself is not F051-only — it works with any STM32
+for which you have a debug kernel, a correctly-converted SVD, and the
+converted reference manual.  See INSTALL.md, "Which chips does this work
+with?".
+
 ## Manual install
 
 ```sh
