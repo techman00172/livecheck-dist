@@ -49,10 +49,29 @@ microcontroller for which you have:
 The language servers, the toolchain, the demo method and the whole
 live-silicon workflow are chip-agnostic — only the data (kernel + SVD +
 manual) is chip-specific.  The F051 set is included so everything works out
-of the box; for another chip you add its three converted pieces.  (The
-distribution also carries ready-converted SVD databases for the F1, F4, L0
-and G0 families — those need their matching kernel and manual conversions
-before they are usable as a full target.)
+of the box; for another chip you add its three converted pieces.
+
+**What this distribution supplies, by chip:**
+
+- **SVD databases** (the register maps) are supplied for **all five**
+  families — so the language servers can complete registers and bitfields
+  for any of these boards, not just the F051:
+  - `STM32F051-svd.db`
+  - `STM32F103-svd.db`
+  - `STM32F407-svd.db`
+  - `STM32L0xx-svd.db`
+  - `STM32G030-svd.db`
+  - `ARM-Core.db` (the ARM Cortex-M core registers common to all of them)
+- **Reference Manual database** (the human-readable meanings) is supplied
+  **only for the F051** (`STM32F051-rm.db`).
+
+So: you can drive any board covered by those SVD databases, and the
+register-map completions will work for all of them.  The full "meaning"
+decorations (RM prose in completions and the summary) are currently only
+available for the F051, because only its reference manual has been
+converted so far.  Use the F051 Discovery for the fully-supported demo
+experience, or bring your own board from the list and convert its manual
+when you want the meanings too.
 
 ### Database naming
 
