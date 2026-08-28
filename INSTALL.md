@@ -85,6 +85,37 @@ turn blue.  Work through `demo.fs` top to bottom — each STEP is a real bug.
 You can always fall back to plain `make upload` from a terminal — that is
 exactly what `livecheck-reset.sh` triggers on the chip side.
 
+## Mapping the commands to keys
+
+Running the commands from a command palette or terminal works, but it's
+nicer to bind them to keys so they're one keystroke away.  Every editor
+lets you do this; here is the Helix example so you can see the shape.
+
+In Helix, add these to the `[keys.normal]` section of
+`~/.config/helix/config.toml`:
+
+```toml
+F4 = ":run-shell-command livecheck-reset.sh"    # reset + make upload (errors to gutter)
+F5 = ":run-shell-command summary-refresh.sh"    # refresh the live summary (no rebuild)
+F6 = ":run-shell-command livecheck-assert.sh"   # run the asserts (pass/fail to gutter)
+```
+
+(With setup.sh installed the scripts are on your `PATH` via `~/.local/bin`,
+so you can call them by name.  If you linked them elsewhere, give the full
+path, e.g. `/home/you/livecheck-dist/scripts/livecheck-reset.sh`.)
+
+Then in normal mode:
+
+- **F4** — reset the board, `make upload`, errors mapped to the gutter
+- **F5** — refresh the project summary from the live chip
+- **F6** — run the `( "check": ... )` asserts
+
+Other editors work the same way — you're just binding a shell command to a
+key.  VS Code: Task + keybinding; Neovim: `vim.keymap.set("n", "<F4>",
+":!livecheck-reset.sh<CR>")`; Emacs: `(global-set-key (kbd "<f4>")
+'shell-command)`.  Bind them to whatever keys suit you — everyone is
+precious about their own keybindings, and that's fine.
+
 ## Verify your install (optional)
 
 The same test harness that pre-tested this release can re-verify your
