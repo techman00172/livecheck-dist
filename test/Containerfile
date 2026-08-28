@@ -10,11 +10,13 @@
 FROM archlinux:latest
 
 # Base tooling: python + tkinter (the console), sqlite3 (databases),
-# git/curl (fetch tools), xvfb (headless GUI test).
+# git/curl (fetch tools), xvfb (headless GUI test), libxslt (the SVD->db
+# build needs xsltproc).
 RUN pacman -Sy --noconfirm --needed \
         python tk sqlite \
         base-devel git curl \
         xorg-server-xvfb \
+        libxslt \
     && rm -rf /var/cache/pacman/pkg
 
 # Helix (the editor the LSPs plug into) — latest release binary.

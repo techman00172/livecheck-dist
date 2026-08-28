@@ -132,7 +132,7 @@ echo "-- 7. Demo pipeline build --"
 # The repo is mounted read-only, but the build writes outputs — copy the demo
 # + toolchain to a writable dir first.
 if ( mkdir -p /tmp/demowork \
-     && cp -r "$REPO/demo" "$REPO/toolchain" /tmp/demowork/ \
+     && cp -r "$REPO/demo" "$REPO/toolchain" "$REPO/scripts" /tmp/demowork/ \
      && cd /tmp/demowork/demo && make clean >/dev/null 2>&1 \
      && make check-ascii >/dev/null 2>&1 \
      && make upload.fs >/dev/null 2>&1 ); then
@@ -143,6 +143,28 @@ if ( mkdir -p /tmp/demowork \
     fi
 else
     bad "demo pipeline failed to build"
+fi
+
+# --- 7b. The SVD->database build mechanism works (make databases) ---
+echo "-- 7b. SVD->database build (make databases) --"
+# This is the 'use ANY STM32 chip' mechanism: give it an SVD, get a -svd.db.
+# Requires xsltproc; the container may lack it, so build what we can.
+if command -v xsltproc >/dev/null 2>&1; then
+    if ( mkdir -p /tmp/demowork/databases \
+         && cd /tmp/demowork/demo && MCU=STM32F103 make databases >/dev/null 2>&1 \
+         && [ -f /tmp/demowork/databases/STM32F103-svd.db ] ); then
+        n=$(sqlite3 /tmp/demowork/databases/STM32F103-svd.db \
+            "SELECT count(*) FROM register;" 2>/dev/null)
+        if [ "$n" = "722" ]; then
+            ok "make databases built STM32F103-svd.db from its SVD ($n registers)"
+        else
+            bad "make databases built a DB but wrong size (got '$n', want 722)"
+        fi
+    else
+        bad "make databases failed to build a database from the SVD"
+    fi
+else
+    echo "  [ SKIP ] xsltproc not in the container — SVD build skipped"
 fi
 
 # --- 8. setup.sh runs (dependency check path) ---

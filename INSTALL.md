@@ -89,6 +89,40 @@ you are looking at:
 So `STM32F051-svd.db` is the F051's register map and `STM32F051-rm.db` is
 the F051's manual meanings — a pair, one name, both halves.
 
+### Use any STM32 chip — the SVD build is built in
+
+The databases above are just the ones that ship pre-built.  **You can use
+any STM32 microcontroller of the thousands of models available** — the
+mechanism for building a chip's database from its SVD file is built into
+LiveCheck.  All you need is the chip's **SVD file** (the vendor's register
+description; ST publishes it free for every STM32).
+
+The toolchain includes `scripts/build-svd-db.sh`, which turns an SVD file
+into the `-svd.db` database the language servers read.  The workflow:
+
+1. **Get the SVD file** for your chip — e.g. `STM32G031.svd` (from ST or
+   the open CMSIS-SVD project).
+2. **Drop it in the demo directory** next to the Makefile.
+3. **Tell make which chip** — change `MCU` in `demo/Makefile`, or pass it on
+   the command line:
+   ```sh
+   cd demo
+   MCU=STM32G031 make databases
+   ```
+4. **Done** — this builds `databases/STM32G031-svd.db` automatically, and
+   LiveCheck now completes registers and bitfields for that chip.
+
+The build is the same one that produced the shipped databases (the test
+harness proves it reproduces them exactly — 51/51 checks).  The only tool
+it needs is `xsltproc` (Arch: `sudo pacman -S libxslt`; Debian: `sudo apt
+install libxslt1.1`).
+
+So: want to use an STM32G0, an F4, an L4, a custom part?  Get its SVD, drop
+it in, `MCU=... make databases` — and LiveCheck knows your chip.  (The
+Reference Manual meanings in completions and the summary still need the
+manual converted the same way; the register-map completions work from the
+SVD alone.)
+
 ## Install
 
 ```sh

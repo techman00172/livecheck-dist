@@ -3,14 +3,30 @@
 # Mirrors the nokia-5110-lcd project's proven Makefile.
 # src/demo.fs -> source_in.fs -> (gema) -> upload.fs -> chip.
 
-MCU = STM32F051
+# Use ?= so a command-line MCU=STM32G031 overrides this default.
+MCU ?= STM32F051
 
 SRC_DIR = .
 SOURCE_IN = source_in.fs
 UPLOAD = upload.fs
 
 GEMA = ../toolchain/gema
-DB = ../toolchain/STM32F051.db
+# The SVD database for the current chip lives in ../databases/<MCU>-svd.db
+# (the -svd naming scheme).  The gema pipeline resolves CMSIS register names
+# using the .pat files below, not the database — the database powers the
+# editor's completions.  Change MCU + add your <MCU>.svd, then:
+#   make databases            builds ../databases/<MCU>-svd.db for ANY STM32
+SVD_SRC = $(SRC_DIR)/$(MCU).svd
+SVD_DB_OUT = ../databases/$(MCU)-svd.db
+
+# Build the SVD database for the current MCU from its .svd file.
+# Usage:  MCU=STM32G031 make databases     (with demo/STM32G031.svd present)
+databases:
+	@test -f $(SVD_SRC) || (echo "ERROR: $(SVD_SRC) not found — put your SVD in demo/"; exit 1)
+	../scripts/build-svd-db.sh $(MCU)
+
+$(SVD_DB_OUT): $(SVD_SRC)
+	../scripts/build-svd-db.sh $(MCU)
 
 CONSTANTS_PAT = ../toolchain/patterns/constants.pat
 STRIP_PAT = ../toolchain/patterns/strip.pat
@@ -69,4 +85,4 @@ check-ascii: $(PROJ_FILES)
 clean:
 	rm -f $(SOURCE_IN) $(BITFIELDS_OUT) $(REGISTERS_OUT) $(CONSTANTS_OUT) $(UPLOAD) .unresolved.tmp
 
-.PHONY: all project quick upload check-ascii clean
+.PHONY: all project quick upload check-ascii clean databases
