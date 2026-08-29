@@ -31,11 +31,10 @@ import os
 import re
 import socket
 import sqlite3
-import site_paths
 
 FORTH_SOCK = "/tmp/swdd-forth.sock"
 CMD_SOCK = "/tmp/swdd-cmd.sock"
-SVD_DB = site_paths.database("STM32F051-svd.db")
+SVD_DB = os.path.expanduser("~/fossil/swdai/database_rel.db")
 
 # Key registers for the CONFIG section.  (peripheral, register) -> why it matters
 CONFIG_REGS = [
@@ -140,7 +139,7 @@ def _rm_prose(periph, reg, fname):
     """RM reference-manual prose for a bitfield, with sibling-timer and
     generic fallbacks (same strategy as the LSP's live decode).  Returns the
     prose text or None."""
-    rm_db = site_paths.database("STM32F051-rm.db")
+    rm_db = os.path.expanduser("~/fossil/swdai/databases/stm32f0xx-rm.db")
     if not os.path.isfile(rm_db):
         return None
     try:
@@ -407,6 +406,84 @@ def _defs_and_calls(project_dir):
     return calls, order
 
 
+def _word_stack_and_desc(project_dir, word):
+    """Find a word's definition and return (stack_effect, description).
+    stack_effect: the ( ... -- ... ) right after ': name'.  description: a
+    descriptive comment attached to THIS word — on the definition line, or
+    the first comment line inside the definition body (before its ';').  A
+    trailing comment on the last body line is the strongest signal.  Both
+    are best-effort; either may be empty."""
+    stack, desc = "", ""
+    for path in _project_files(project_dir):
+        try:
+            with open(path, errors="replace") as f:
+                lines = f.readlines()
+        except OSError:
+            continue
+        for i, line in enumerate(lines):
+            code = line.split("\\", 1)[0].strip()
+            m = _WORD_DEF_RE.match(code)
+            if not m or m.group(1) != word:
+                continue
+            # stack effect: first ( ... ) on the definition line
+            rest = code[m.end():]
+            sm = re.search(r"\(\s*([^)]*)\)", rest)
+            if not sm:
+                # stack effect may be on the first body line
+                for nxt in lines[i + 1:i + 3]:
+                    if re.search(r";", nxt):
+                        break
+                    sm = re.search(r"\(\s*([^)]*)\)", nxt)
+                    if sm:
+                        break
+            if sm:
+                stack = sm.group(1).strip()
+            # description: a comment on the definition line, else the LAST
+            # comment line inside the body (before ';') — a trailing comment
+            # like ' \ ring the piezo for 500ms' is the word's own.
+            dm = re.search(r"\\\s+(.+)$", line.rstrip("\n"))
+            if dm:
+                desc = dm.group(1).strip()
+            else:
+                for nxt in lines[i + 1:i + 8]:
+                    if ";" in nxt:
+                        break
+                    cm = re.search(r"\\\s+(.+)$", nxt.rstrip("\n"))
+                    if cm:
+                        desc = cm.group(1).strip()
+            return stack, desc
+    return stack, desc
+
+
+def _word_index_section(project_dir):
+    """A compact, context-friendly index of every word: name, stack effect,
+    one-line description, and what it calls.  This is the AGENT'S map of the
+    program — read-once and small enough to fit a limited context window
+    (Terry 2026-08-30).  Entry points (words never called) are listed first
+    so the program's purpose is visible at a glance."""
+    calls, order = _defs_and_calls(project_dir)
+    if not order:
+        return ["*(no word definitions found)*"]
+    defined = set(order)
+    called = set()
+    for w, deps in calls.items():
+        called.update(d for d in deps if d in defined)
+    entries = []
+    for w in order:
+        stack, desc = _word_stack_and_desc(project_dir, w)
+        deps = sorted(c for c in calls.get(w, ()) if c in defined and c != w)
+        entries.append((w, stack, desc, deps, w not in called))
+    entries.sort(key=lambda e: (not e[4], e[0]))  # entry points first
+    lines = []
+    for w, stack, desc, deps, is_entry in entries:
+        tag = "**ENTRY** " if is_entry else ""
+        sig = f" `{stack}`" if stack else ""
+        note = f" — {desc}" if desc else ""
+        calls_txt = f"  →  {', '.join(deps)}" if deps else ""
+        lines.append(f"{tag}{w}{sig}{note}{calls_txt}")
+    return lines
+
+
 def _deps_section(project_dir):
     """Build the dependency-graph report (markdown)."""
     calls, order = _defs_and_calls(project_dir)
@@ -496,6 +573,8 @@ def generate(project_dir):
     L += [""] + config
     L += ["---", "", "## Word Dependencies"]
     L += [""] + deps
+    L += ["---", "", "## Word Index (agent-friendly, read-once)"]
+    L += [""] + _word_index_section(project_dir)
     return "\n".join(L) + "\n"
 
 
@@ -526,6 +605,8 @@ def generate_fossil(project_dir):
     L += [""] + config
     L += ["----", "", "## Word Dependencies"]
     L += [""] + deps
+    L += ["----", "", "## Word Index (agent-friendly, read-once)"]
+    L += [""] + _word_index_section(project_dir)
     return "\n".join(L) + "\n"
 
 
