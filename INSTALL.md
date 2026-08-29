@@ -26,8 +26,31 @@ To install it, follow these steps.
 - **any LSP-capable editor** — Helix, VS Code, Neovim, Emacs, Zed, Kate,
   etc.  (These days that's effectively all of them.)
 - **Python 3** with tkinter
-- an **ST-Link** SWD probe (a few dollars; the Discovery board has one built in)
-- a **STM32F051** board
+- an **STM32 Discovery or Nucleo board** — the F0 Discovery is the reference
+  (its ST-Link probe and target chip are on-board, so **one USB cable is the
+  whole bench**)
+
+## Testing it after install
+
+Once the software is installed, all you need to run everything is an
+**STM32F0 Discovery board and a USB cable** into your Linux box.  The
+Discovery board has the ST-Link probe and the target chip on it, so one USB
+cable is the entire bench — plug it in, flash the kernel, and you're
+checking Forth against live silicon.
+
+Don't have an F0 Discovery?  That's fine.  **Any STM32 Discovery or Nucleo
+board works** — providing it's one of the chips whose database is supplied
+(see "Which chips does this work with?" below).  The whole workflow —
+kernel, language servers, toolchain, demo — is chip-agnostic, so any of the
+supplied families runs it identically.
+
+One difference to know about: **only the F051 has the full dynamic register
+completion** (the Reference Manual meanings — what each register and
+bitfield actually *does*, shown in completions and the summary).  The other
+families use their SVD databases, which give you the register and bitfield
+*names* but the generic descriptions from the SVD.  So the F0 Discovery
+gives you the richest experience out of the box; the others still work, just
+without the RM-decorated meanings.
 
 ## Which chips does this work with?
 
