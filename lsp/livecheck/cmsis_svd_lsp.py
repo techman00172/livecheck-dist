@@ -26,7 +26,7 @@ import re
 import time
 import json
 import subprocess
-import site_paths
+import lsp_state
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
@@ -83,30 +83,22 @@ class SVDCompletionProvider:
         # ARM-core registers (SysTick, SCB) are NOT in the ST SVD — they live
         # in a separate database with the same schema.  Search both so
         # STK_CSR / SCB_CPUID / etc. complete alongside the ST registers.
-        # Resolve relative to the DISTRIBUTION layout first (livecheck-dist/
-        # databases), falling back to the development /home/tp layout.
-        self.arm_db_path = self._dist_or_dev_db("ARM-Core.db")
+        self.arm_db_path = os.path.expanduser(
+            "/home/tp/fossil/swdai/databases/ARM-Core.db")
         if not os.path.isfile(self.arm_db_path):
             self.arm_db_path = ""
         logger.info(f"Database: {db_path} MCU: {self.mcu} ARM-Core: {self.arm_db_path}")
 
     @staticmethod
-    def _dist_or_dev_db(name: str) -> str:
-        """Locate an SVD database via site_paths (distribution databases/
-        dir first, else the swdai development checkout).  '' if neither."""
-        return site_paths.database(name)
-
-    @staticmethod
     def _resolve_db_by_mcu(mcu: str) -> str:
         """Map an MCU family (e.g. STM32F051xx, STM32F103, F407) to the best
-        SVD database (distribution databases/ dir, else swdai dev checkout).
-        Returns '' if nothing matches."""
+        swdai SVD database.  Returns '' if nothing matches."""
         candidates = [
-            "STM32F051-svd.db",
-            "STM32F103-svd.db",
-            "STM32F407-svd.db",
-            "STM32L0xx-svd.db",
-            "STM32G030-svd.db",
+            "/home/tp/fossil/swdai/databases/STM32F051.db",
+            "/home/tp/fossil/swdai/databases/STM32F103.db",
+            "/home/tp/fossil/swdai/databases/STM32F407.db",
+            "/home/tp/fossil/swdai/databases/STM32L0xx.db",
+            "/home/tp/fossil/swdai/databases/STM32G030.db",
         ]
         mcu_up = (mcu or "").upper()
         prefer = None
@@ -122,10 +114,8 @@ class SVDCompletionProvider:
             prefer = candidates[4]
         # Fall back to the first database that actually exists.
         for c in (prefer, *candidates):
-            if c:
-                p = SVDCompletionProvider._dist_or_dev_db(c)
-                if p and os.path.isfile(p):
-                    return p
+            if c and os.path.isfile(c):
+                return c
         return ""
 
     def _search_db(self, db_path: str, like: str):
@@ -515,6 +505,7 @@ def _scan_and_publish(ls: LanguageServer, text_doc):
 
     ls.text_document_publish_diagnostics(
         PublishDiagnosticsParams(uri=text_doc.uri, diagnostics=diagnostics))
+    lsp_state.snapshot(ls, text_doc.uri, diagnostics)
 
 
 # ---------------------------------------------------------------------------
@@ -672,6 +663,7 @@ def _publish_with_livecheck(ls, text_doc, force=False, record_only=False):
         )]
         ls.text_document_publish_diagnostics(
             PublishDiagnosticsParams(uri=uri, diagnostics=diags))
+        lsp_state.snapshot(ls, uri, diags)
         return
 
     # DEPENDS (#1): check #depends dependency files FIRST, so their words
@@ -808,6 +800,7 @@ def _publish_with_livecheck(ls, text_doc, force=False, record_only=False):
         ))
     ls.text_document_publish_diagnostics(
         PublishDiagnosticsParams(uri=uri, diagnostics=diags))
+    lsp_state.snapshot(ls, uri, diags)
 
 
 def _trigger_scan(ls: LanguageServer, text_doc):
@@ -865,12 +858,6 @@ def livecheck_reset(ls: LanguageServer):
     return result
 
 
-def _dist_or_dev_script(name: str) -> str:
-    """Locate a helper script via site_paths (distribution scripts/ dir
-    first, else the ~/scripts development location)."""
-    return site_paths.script(name)
-
-
 def _write_and_show_summary(project_dir):
     """Write the project summary from the LIVE chip and pop/refresh the viewer.
     Used by both F4 (after make) and F5 (refresh after running INIT/words) —
@@ -882,15 +869,11 @@ def _write_and_show_summary(project_dir):
         if paths:
             logger.info("summary: written to %s", ", ".join(paths))
             try:
-                viewer = _dist_or_dev_script("summary-tk.sh")
-                if not viewer:
-                    logger.warning("summary: summary-tk.sh not found (dist or dev)")
-                else:
-                    subprocess.Popen(
-                        [viewer, project_dir],
-                        stdout=subprocess.DEVNULL,
-                        stderr=subprocess.DEVNULL,
-                        start_new_session=True)
+                subprocess.Popen(
+                    [os.path.expanduser("~/scripts/summary-tk.sh"), project_dir],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    start_new_session=True)
             except OSError as e:
                 logger.warning("summary: viewer launch failed: %s", e)
             return paths
@@ -1155,7 +1138,7 @@ def _decode_bitfield_value(periph, reg, fname, fval):
 
     # 2. the value-table prose from the RM DB (the same source Regmon decodes).
     import os as _os
-    rm_db = site_paths.database("STM32F051-rm.db")
+    rm_db = _os.path.expanduser("~/fossil/swdai/databases/stm32f0xx-rm.db")
     if not _os.path.isfile(rm_db):
         return None, None
     prose = None

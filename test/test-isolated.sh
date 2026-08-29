@@ -49,6 +49,8 @@ for f in README.md setup.sh \
          lsp/livecheck/forth_livecheck.py \
          lsp/livecheck/project_summary.py \
          lsp/livecheck/mecrisp_mcp.py \
+         lsp/livecheck/lsp_state.py \
+         lsp/livecheck/livecheck_mcp.py \
          lsp/livecheck/mecrisp_stellaris.db \
          databases/ARM-Core.db databases/STM32F051-svd.db \
          databases/STM32F103-svd.db databases/STM32F407-svd.db \
@@ -100,11 +102,35 @@ if ( cd "$REPO" && PYTHONPYCACHEPREFIX=/tmp/pyc python3 -m py_compile \
         lsp/livecheck/forth_lint.py \
         lsp/livecheck/forth_livecheck.py \
         lsp/livecheck/forth_single_step.py \
-        lsp/livecheck/project_summary.py \
-        lsp/livecheck/mecrisp_mcp.py ); then
+         lsp/livecheck/project_summary.py \
+         lsp/livecheck/mecrisp_mcp.py \
+         lsp/livecheck/lsp_state.py \
+         lsp/livecheck/livecheck_mcp.py ); then
     ok "all LSP .py compile"
 else
     bad "compile failed"
+fi
+
+# --- 4b. livecheck-mcp builds and registers its 6 tools ---
+echo "-- 4b. livecheck-mcp server builds --"
+# Needs the python 'mcp' package (installed in the container via pip; on
+# Terry's box it's in the service venv).
+if python3 -c "import mcp" >/dev/null 2>&1; then
+    if ( cd "$REPO/lsp/livecheck" && python3 -c "
+import livecheck_mcp, lsp_state
+m = livecheck_mcp.build_mcp()
+tools = sorted(t.name for t in m._tool_manager._tools.values())
+need = ['active_documents','document_contents','document_diagnostics',
+        'chip_state','project_summary','snapshot_age']
+assert all(n in tools for n in need), (tools, need)
+print('tools:', tools)
+" ) >/tmp/mcp-build.log 2>&1; then
+        ok "livecheck_mcp builds + registers all 6 tools"
+    else
+        bad "livecheck_mcp failed: $(tail -2 /tmp/mcp-build.log)"
+    fi
+else
+    echo "  [ SKIP ] python 'mcp' package not in this interpreter"
 fi
 
 # --- 5. Databases are readable with content ---
