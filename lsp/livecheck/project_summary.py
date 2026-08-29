@@ -428,10 +428,13 @@ def _word_stack_and_desc(project_dir, word):
             # stack effect: first ( ... ) on the definition line
             rest = code[m.end():]
             sm = re.search(r"\(\s*([^)]*)\)", rest)
-            if not sm:
-                # stack effect may be on the first body line
-                for nxt in lines[i + 1:i + 3]:
-                    if re.search(r";", nxt):
+            if not sm and ";" not in code:
+                # multi-line def: stack effect may be on a body line BEFORE
+                # the ';' — but NEVER past it into the next word (single-line
+                # defs have their ';' on the definition line, so ';' in code
+                # means 'don't scavenge forward at all').
+                for nxt in lines[i + 1:i + 4]:
+                    if ";" in nxt:
                         break
                     sm = re.search(r"\(\s*([^)]*)\)", nxt)
                     if sm:
@@ -439,18 +442,24 @@ def _word_stack_and_desc(project_dir, word):
             if sm:
                 stack = sm.group(1).strip()
             # description: a comment on the definition line, else the LAST
-            # comment line inside the body (before ';') — a trailing comment
-            # like ' \ ring the piezo for 500ms' is the word's own.
+            # comment line INSIDE the body (before ';') — never scavenge past
+            # the definition's own ';' into the NEXT word (that steals the
+            # neighbour's metadata, e.g. light-off grabbing spi-byte's
+            # '(wait TXE, write DR)' — koda caught this 2026-08-30).
             dm = re.search(r"\\\s+(.+)$", line.rstrip("\n"))
             if dm:
                 desc = dm.group(1).strip()
+            elif ";" in code:  # single-line definition — its ';' is on this line
+                desc = ""
             else:
+                body_desc = ""
                 for nxt in lines[i + 1:i + 8]:
                     if ";" in nxt:
                         break
                     cm = re.search(r"\\\s+(.+)$", nxt.rstrip("\n"))
                     if cm:
-                        desc = cm.group(1).strip()
+                        body_desc = cm.group(1).strip()
+                desc = body_desc
             return stack, desc
     return stack, desc
 
