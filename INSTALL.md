@@ -50,7 +50,7 @@ bitfield actually *does*, shown in completions and the summary).  The other
 families use their SVD databases, which give you the register and bitfield
 *names* but the generic descriptions from the SVD.  So the F0 Discovery
 gives you the richest experience out of the box; the others still work, just
-without the RM-decorated meanings.
+without the RM-dynamic-live meanings.
 
 ## Which chips does this work with?
 
