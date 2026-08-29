@@ -88,7 +88,14 @@ def build_mcp(host="127.0.0.1", port=8794):
             "Reads the LSP state snapshot (open documents, unsaved contents, "
             "gutter diagnostics) and the swdd chip socket.  Use this to see "
             "what the editor and the silicon are doing RIGHT NOW — never "
-            "touches the Forth socket or modifies anything."
+            "touches the Forth socket or modifies anything.\n\n"
+            "CONTEXT BUDGET (IMPORTANT): files can be large and your context "
+            "window is limited.  ALWAYS pass start/end (1-based line numbers) "
+            "or limit=N to document_contents — never fetch a whole file "
+            "unless you know it is small.  Use active_documents first to see "
+            "what is open, then slice just the region you need.  Use "
+            "document_diagnostics WITHOUT a uri for per-file counts only; "
+            "add a uri + line range only for detail on one file."
         ),
     )
     mcp.settings.stateless_http = True
@@ -111,10 +118,15 @@ def build_mcp(host="127.0.0.1", port=8794):
         }), indent=2)
 
     @mcp.tool()
-    def document_contents(uri: str = "") -> str:
+    def document_contents(uri: str = "", start: int = 1, end: int = 0, limit: int = 0) -> str:
         """Return the CURRENT contents of an open document (including unsaved
-        edits).  With no uri, returns the first/only open document.  This is
-        the live buffer, not the stale file on disk."""
+        edits).  With no uri, returns the first/only open document.
+
+        SLICING (essential — whole files blow small contexts): give start/end
+        as 1-based line numbers to get just that range (end=0 means 'to the
+        end').  Or give limit=N to cap at N lines from the top.  The response
+        reports which lines it returned, so you can page through a big file
+        without loading it all at once."""
         state = lsp_state._read_or_new()
         docs = state.get("documents", {})
         if not uri:
@@ -122,17 +134,44 @@ def build_mcp(host="127.0.0.1", port=8794):
         info = docs.get(uri)
         if info is None:
             return json.dumps(_tag({"error": "no such open doc", "uri": uri}), indent=2)
-        return json.dumps(_tag({"uri": uri, "contents": info.get("contents", "")}), indent=2)
+        lines = info.get("contents", "").split("\n")
+        total = len(lines)
+        if limit:
+            end = min(limit, total)
+            start = 1
+        if start < 1:
+            start = 1
+        if end <= 0 or end > total:
+            end = total
+        if end < start:
+            end = start
+        slice_lines = lines[start - 1:end]
+        return json.dumps(_tag({
+            "uri": uri,
+            "total_lines": total,
+            "returned_lines": f"{start}-{end}",
+            "contents": "\n".join(slice_lines),
+        }), indent=2)
 
     @mcp.tool()
-    def document_diagnostics(uri: str = "") -> str:
+    def document_diagnostics(uri: str = "", start: int = 1, end: int = 0) -> str:
         """Return the gutter diagnostics (orange/blue marks) for an open
-        document.  With no uri, returns diagnostics for ALL open docs."""
+        document.  With no uri, returns diagnostics for ALL open docs but
+        ONLY the counts per file (keeps the response small).  Give a uri +
+        optional 1-based line range to get the full diagnostic detail for
+        just that slice."""
         state = lsp_state._read_or_new()
         diags = state.get("diagnostics", {})
         if uri:
-            return json.dumps(_tag({uri: diags.get(uri, [])}), indent=2)
-        return json.dumps(_tag(diags), indent=2)
+            items = diags.get(uri, [])
+            if start > 1 or end:
+                items = [d for d in items
+                         if (d.get("line") or 0) + 1 >= start
+                         and (end <= 0 or (d.get("line") or 0) + 1 <= end)]
+            return json.dumps(_tag({uri: items}), indent=2)
+        # no uri: just the counts per file, so it never blows context
+        counts = {u: len(d) for u, d in diags.items()}
+        return json.dumps(_tag(counts), indent=2)
 
     @mcp.tool()
     def chip_state() -> str:
